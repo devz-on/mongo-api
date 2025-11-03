@@ -1,8 +1,8 @@
 import { MongoClient } from "mongodb";
 
 const uri = process.env.MONGODB_URI;
-const dbName = process.env.DB_NAME || "DevzAssistant";
-const collectionName = process.env.COLLECTION_NAME || "keys";
+const dbName = process.env.DB_NAME || "test";
+const collectionName = process.env.COLLECTION_NAME || "apikeys";
 
 export default async function handler(req, res) {
   if (!uri) return res.status(500).json({ error: "MONGODB_URI not configured" });
