@@ -1,37 +1,78 @@
 import { MongoClient } from "mongodb";
 
-const uri = "mongodb+srv://bhoot00:devilxevilx@bhoot00.jr6dw.mongodb.net/?retryWrites=true&w=majority&appName=bhoot00";
-const client = new MongoClient(uri);
-const dbName = "DevzAssistant";
-const collectionName = "keys";
+const uri = process.env.MONGODB_URI;
+const dbName = process.env.DB_NAME || "DevzAssistant";
+const collectionName = process.env.COLLECTION_NAME || "keys";
 
 export default async function handler(req, res) {
   const { days } = req.query;
 
-  if (!days || isNaN(days)) {
+  if (req.method !== "GET" && req.method !== "POST") {
+    return res.status(405).json({ error: "Method not allowed" });
+  }
+
+  if (!days || isNaN(days) || Number(days) <= 0) {
     return res.status(400).json({ error: "Invalid number of days" });
   }
 
+  if (!uri) {
+    return res.status(500).json({ error: "MONGODB_URI not configured" });
+  }
+
+  let client;
   try {
+    client = new MongoClient(uri);
     await client.connect();
     const db = client.db(dbName);
-    const keys = db.collection(collectionName);
+    const col = db.collection(collectionName);
 
-    const key = Math.random().toString(36).substring(2, 12).toUpperCase();
+    const key = cryptoKey();
     const createdAt = new Date();
-    const expiresAt = new Date(createdAt.getTime() + days * 24 * 60 * 60 * 1000);
+    const expiresAt = new Date(createdAt.getTime() + Number(days) * 24 * 60 * 60 * 1000);
 
-    await keys.insertOne({
+    const doc = {
       user_key: key,
       days_valid: Number(days),
       created_at: createdAt,
-      expires_at: expiresAt,
-    });
+      expires_at: expiresAt
+    };
 
-    res.json({ success: true, key, expires_at: expiresAt });
+    await col.insertOne(doc);
+    return res.json({ success: true, key, expires_at: expiresAt.toISOString() });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error("create error:", err);
+    return res.status(500).json({ error: err.message });
   } finally {
-    await client.close();
+    if (client) await client.close();
+  }
+}
+
+function cryptoKey() {
+  // 40-char alphanumeric uppercase key
+  return Array.from(cryptoRandomBytes(20)).map(b => ("0" + b.toString(16)).slice(-2)).join("").toUpperCase().slice(0, 20);
+}
+
+function cryptoRandomBytes(n) {
+  // Node's crypto module is available via globalThis.crypto in newer Node.
+  // Fallback to require('crypto') if not present.
+  try {
+    if (globalThis.crypto && globalThis.crypto.getRandomValues) {
+      const arr = new Uint8Array(n);
+      globalThis.crypto.getRandomValues(arr);
+      return arr;
+    }
+  } catch {}
+  // fallback:
+  const crypto = awaitImportCrypto();
+  return crypto.randomBytes(n);
+}
+
+function awaitImportCrypto() {
+  // synchronous fallback to require
+  try {
+    // eslint-disable-next-line no-undef
+    return require("crypto");
+  } catch (e) {
+    throw new Error("No crypto available");
   }
 }
