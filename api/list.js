@@ -23,8 +23,8 @@ export default async function handler(req, res) {
     const keys = docs.map(d => ({
       key: d.key,
       duration: d.duration,
-      createdAt: d.createdAt,
-      expiryDate: d.expiryDate
+      expiryDate: d.expiryDate,
+      createdAt: d.createdAt
     }));
 
     return res.json({ success: true, count: keys.length, keys });
