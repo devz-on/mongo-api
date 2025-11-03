@@ -20,7 +20,7 @@ export default async function handler(req, res) {
     const db = client.db(dbName);
     const col = db.collection(collectionName);
 
-    const result = await col.deleteOne({ user_key: key });
+    const result = await col.deleteOne({ key: key });
     if (result.deletedCount > 0) {
       return res.json({ success: true, message: `Key ${key} deleted.` });
     } else {
