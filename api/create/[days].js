@@ -31,10 +31,10 @@ export default async function handler(req, res) {
     const expiresAt = new Date(createdAt.getTime() + Number(days) * 24 * 60 * 60 * 1000);
 
     const doc = {
-      user_key: key,
-      days_valid: Number(days),
-      created_at: createdAt,
-      expires_at: expiresAt
+      key: key,
+      duration: Number(days),
+      expiryDate: expiresAt,
+      createdAt: createdAt
     };
 
     await col.insertOne(doc);
