@@ -1,29 +1,35 @@
 import { MongoClient } from "mongodb";
 
-const uri = ;
-const client = new MongoClient(uri);
-const dbName = "DevzAssistant";
-const collectionName = "keys";
+const uri = process.env.MONGODB_URI;
+const dbName = process.env.DB_NAME || "DevzAssistant";
+const collectionName = process.env.COLLECTION_NAME || "keys";
 
 export default async function handler(req, res) {
+  if (!uri) return res.status(500).json({ error: "MONGODB_URI not configured" });
+
+  let client;
   try {
+    client = new MongoClient(uri);
     await client.connect();
     const db = client.db(dbName);
-    const keys = db.collection(collectionName);
+    const col = db.collection(collectionName);
 
-    const list = await keys.find().toArray();
+    // optional: cleanup expired keys on each list request
+    const now = new Date();
+    await col.deleteMany({ expires_at: { $lte: now } });
 
-    res.json({
-      count: list.length,
-      keys: list.map(k => ({
-        user_key: k.user_key,
-        expires_at: k.expires_at,
-        days_valid: k.days_valid
-      }))
-    });
+    const docs = await col.find().sort({ created_at: -1 }).toArray();
+    const keys = docs.map(d => ({
+      user_key: d.user_key,
+      days_valid: d.days_valid,
+      created_at: d.created_at,
+      expires_at: d.expires_at
+    }));
+    return res.json({ success: true, count: keys.length, keys });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error("list error:", err);
+    return res.status(500).json({ error: err.message });
   } finally {
-    await client.close();
+    if (client) await client.close();
   }
 }
