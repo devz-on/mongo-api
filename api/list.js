@@ -16,7 +16,7 @@ export default async function handler(req, res) {
 
     // optional: cleanup expired keys on each list request
     const now = new Date();
-    await col.deleteMany({ expires_at: { $lte: now } });
+    await col.deleteMany({ expiryDate: { $lte: now } });
 
     const docs = await col.find().sort({ created_at: -1 }).toArray();
     const keys = docs.map(d => ({
