@@ -20,10 +20,10 @@ export default async function handler(req, res) {
 
     const docs = await col.find().sort({ created_at: -1 }).toArray();
     const keys = docs.map(d => ({
-      key: d.user_key,
-      duration: d.days_valid,
-      createdAt: d.created_at,
-      expiryDate: d.expires_at
+      key: d.key,
+      duration: d.duration,
+      createdAt: d.createdAt,
+      expiryDate: d.expiresDate
     }));
     return res.json({ success: true, count: keys.length, keys });
   } catch (err) {
